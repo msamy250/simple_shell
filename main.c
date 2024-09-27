@@ -1,44 +1,47 @@
-#include "shell.h"
+#include "main.h"
 
 /**
- * main - entry point
- * @ac: arg count
- * @av: arg vector
- *
- * Return: 0 on success, 1 on error
+ *main - Write a program that prints all the arguments, without using ac.
+ *@argv: is a NULL terminated array of strings
+ *@argc: is the number of items in av
+ *Return: Always 0.
  */
-int main(int ac, char **av)
+int main(int argc __attribute__((unused)), char *argv[])
 {
-	info_t info[] = { INFO_INIT };
-	int fd = 2;
+	char **arrOfWs = NULL, **arrOfWsSmi = NULL;
+	char *line = NULL, *delim = " \n\t";
+	int status = 0, index = 0, iter = 0;
 
-	asm ("mov %1, %0\n\t"
-		"add $3, %0"
-		: "=r" (fd)
-		: "r" (fd));
-
-	if (ac == 2)
+	while (1)
 	{
-		fd = open(av[1], O_RDONLY);
-		if (fd == -1)
+		iter = 0;
+		line = reading_line();
+		if (line == NULL) /*ctrl+d*/
 		{
-			if (errno == EACCES)
-				exit(126);
-			if (errno == ENOENT)
+			if (isatty(STDIN_FILENO))
+				write(STDOUT_FILENO, "\n", 1);
+			return (status);		}
+		index++;
+		if (_strcmp(line, "\n") == 0)
+		{
+			free(line), line = NULL;
+			continue;	}
+		arrOfWsSmi = _check_operators(line);
+		free(line), line = NULL;
+		while (arrOfWsSmi[iter])
+		{
+			arrOfWs = _stringTok(arrOfWsSmi[iter], delim);
+			if (!arrOfWs)
+				break;
+			if (_ckBltIns(arrOfWsSmi, arrOfWs, argv, &status, index))
+				iter++;
+			else
 			{
-				_eputs(av[0]);
-				_eputs(": 0: Can't open ");
-				_eputs(av[1]);
-				_eputchar('\n');
-				_eputchar(BUF_FLUSH);
-				exit(127);
+				status = _fork(arrOfWs, argv, index);
+				iter++;
 			}
-			return (EXIT_FAILURE);
 		}
-		info->readfd = fd;
+		free(arrOfWsSmi), arrOfWsSmi = NULL;
 	}
-	populate_env_list(info);
-	read_history(info);
-	hsh(info, av);
-	return (EXIT_SUCCESS);
+	return (0);
 }
